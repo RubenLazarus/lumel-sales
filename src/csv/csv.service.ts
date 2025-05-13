@@ -7,6 +7,7 @@ import { DataSource, QueryRunner } from 'typeorm';
 import * as csvParser from 'csv-parser';
 import { ICsvService } from './csv';
 import { Readable } from 'stream';
+import { DateTime } from 'luxon';
 @Injectable()
 export class CsvService implements ICsvService {
 
@@ -29,7 +30,8 @@ export class CsvService implements ICsvService {
 
         stream.pipe(csvParser())
             .on('data', async (row) => {
-                batch.push(row);
+                const transformedRow = this.transformRow(row);
+                batch.push(transformedRow);
 
                 if (batch.length >= this.BATCH_SIZE) {
                     stream.pause();
@@ -56,13 +58,13 @@ export class CsvService implements ICsvService {
         try {
             for (const row of batch) {
                 // 1. Update Customer if exists
-                const customerId = row['Customer ID'];
+                const customerId = row.customer_id;
                 await queryRunner.manager
                     .createQueryBuilder()
                     .update(Customers)
                     .set({
-                        name: row['Customer Name'],
-                        address: row['Customer Address']
+                        name: row.customer_name,
+                        address: row.customer_address
                     })
                     .where('id = :id', { id: customerId })
                     .execute();
@@ -70,14 +72,14 @@ export class CsvService implements ICsvService {
 
 
                 // 2. Update Product if exists
-                const productId = row['Product ID'];
+                const productId = row.product_id;
                 await queryRunner.manager
                     .createQueryBuilder()
                     .update(Products)
                     .set({
-                        name: row['Product Name'],
-                        category: row['Category'],
-                        unit_price: parseFloat(row['Unit Price'])
+                        name: row.product_name,
+                        category: row.category,
+                        unit_price: row.unit_price,
                     })
                     .where('id = :id', { id: productId })
                     .execute();
@@ -92,10 +94,10 @@ export class CsvService implements ICsvService {
                         .createQueryBuilder()
                         .update(Orders)
                         .set({
-                            order_date: row['Date of Sale'],
-                            region: row['Region'],
-                            payment_method: row['Payment Method'],
-                            shipping_cost: parseFloat(row['Shipping Cost'])
+                            order_date: row.order_date,
+                            region: row.region,
+                            payment_method: row.payment_method,
+                            shipping_cost: row.shipping_cost
                         })
                         .where('id = :id', { id: orderId })
                         .execute();
@@ -114,8 +116,8 @@ export class CsvService implements ICsvService {
                         .createQueryBuilder()
                         .update(OrderDetails)
                         .set({
-                            quantity: parseInt(row['Quantity Sold']),
-                            discount: parseFloat(row['Discount'])
+                            quantity: row.quantity,
+                            discount: row.discount
                         })
                         .where('order_id = :order_id AND product_id = :product_id', {
                             order_id: orderId,
@@ -130,8 +132,8 @@ export class CsvService implements ICsvService {
                         .values({
                             order: orderId,
                             product: productId,
-                            quantity: parseInt(row['Quantity Sold']),
-                            discount: parseFloat(row['Discount'])
+                            quantity: row.quantity,
+                            discount: row.discount
                         })
                         .execute();
                 }
@@ -143,5 +145,25 @@ export class CsvService implements ICsvService {
         } finally {
             await queryRunner.release();
         }
+    }
+
+    private transformRow(row) {
+        return {
+            order_id: row['Order ID'],
+            product_id: row['Product ID'],
+            customer_id: row['Customer ID'],
+            product_name: row['Product Name'],
+            category: row['Category'],
+            region: row['Region'],
+            order_date: row['Date of Sale'],
+            quantity: parseInt(row['Quantity Sold'], 10),
+            unit_price: parseFloat(row['Unit Price']),
+            discount: parseFloat(row['Discount']),
+            shipping_cost: parseFloat(row['Shipping Cost']),
+            payment_method: row['Payment Method'],
+            customer_name: row['Customer Name'],
+            customer_email: row['Customer Email'],
+            customer_address: row['Customer Address'],
+        };
     }
 }

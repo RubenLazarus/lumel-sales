@@ -16,16 +16,15 @@ export class CsvController {
             throw new BadRequestException('No file uploaded');
         }
 
-        // File validation (optional)
+        // File validation
         if (file.mimetype !== 'text/csv') {
             throw new BadRequestException('Invalid file type, only CSV allowed');
         }
         // Process CSV and insert into DB
         await this.csvServices.processCSV(file.buffer);
 
-        // Remove file after processing
-
         return {
+            success: true,
             message: 'File processed and data inserted successfully',
         };
     }
