@@ -5,10 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { CommonModule } from './common/common.module';
 import { CsvModule } from './csv/csv.module';
-import { OrdersModule } from './orders/orders.module';
-import { CustomersModule } from './customers/customers.module';
-import { ProductsModule } from './products/products.module';
-import { OrderDetailsModule } from './order-details/order-details.module';
+import { AnalysisModule } from './analysis/analysis.module';
 
 @Module({
   imports: [   
@@ -25,10 +22,7 @@ import { OrderDetailsModule } from './order-details/order-details.module';
     }),
     CommonModule,
     CsvModule,
-    OrdersModule,
-    CustomersModule,
-    ProductsModule,
-    OrderDetailsModule,],
+    AnalysisModule,],
   controllers: [AppController],
   providers: [AppService],
 })

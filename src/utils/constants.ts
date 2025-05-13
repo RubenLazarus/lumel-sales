@@ -1,4 +1,5 @@
 export enum Services {
-  CSV = 'CSV_SERVICE',
-  CSV_CRON = 'CSV_CRON_SERVICE',
+    CSV = 'CSV_SERVICE',
+    CSV_CRON = 'CSV_CRON_SERVICE',
+    ANALYSIS = 'ANALYSIS_SERVICE',
 }
