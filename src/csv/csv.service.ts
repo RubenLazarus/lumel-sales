@@ -8,23 +8,29 @@ import * as csvParser from 'csv-parser';
 import { ICsvService } from './csv';
 import { Readable } from 'stream';
 import { DateTime } from 'luxon';
+import { AppLogger } from 'src/common/logger';
 @Injectable()
 export class CsvService implements ICsvService {
 
     private readonly BATCH_SIZE = 1000;
     constructor(
-        private readonly dataSource: DataSource
+        private readonly dataSource: DataSource,
+        private readonly logger: AppLogger,
     ) { }
 
     async processCSV(buffer: Buffer) {
-
-        // Stream processing with batching
-        await this.streamAndProcessCSV(buffer);
-
-        return { message: 'Data ingested successfully!' };
+        this.logger.log('Starting CSV processing...');
+        try {
+            await this.streamAndProcessCSV(buffer);
+            this.logger.log('CSV processing completed successfully.');
+        } catch (error) {
+            this.logger.error('CSV processing failed.', error.message);
+            throw new BadRequestException(error.message);
+        }
     }
 
     private async streamAndProcessCSV(buffer: Buffer) {
+        this.logger.log('Starting stream and batch processing for CSV...');
         const stream = Readable.from(buffer);
         let batch = [];
 
@@ -35,6 +41,7 @@ export class CsvService implements ICsvService {
 
                 if (batch.length >= this.BATCH_SIZE) {
                     stream.pause();
+                    this.logger.log(`Processing batch of size ${batch.length}`);
                     await this.updateBatch(batch);
                     batch = [];
                     stream.resume();
@@ -42,10 +49,12 @@ export class CsvService implements ICsvService {
             })
             .on('end', async () => {
                 if (batch.length > 0) {
+                    this.logger.log(`Processing last batch of size ${batch.length}`)
                     await this.updateBatch(batch);
                 }
             })
             .on('error', (error) => {
+                this.logger.error('Error during CSV streaming.', error.message);
                 throw new BadRequestException(error.message);
             });
     }
@@ -68,7 +77,7 @@ export class CsvService implements ICsvService {
                     })
                     .where('id = :id', { id: customerId })
                     .execute();
-
+                this.logger.log(`Updated customer with ID: ${customerId}`);
 
 
                 // 2. Update Product if exists
@@ -83,11 +92,11 @@ export class CsvService implements ICsvService {
                     })
                     .where('id = :id', { id: productId })
                     .execute();
-
+                this.logger.log(`Updated product with ID: ${productId}`);
 
 
                 // 3. Update Order if exists
-                const orderId = row['Order ID'];
+                const orderId = row.order_id;
                 const orderExists = await queryRunner.manager.findOne(Orders, { where: { id: orderId } });
                 if (orderExists) {
                     await queryRunner.manager
@@ -101,6 +110,7 @@ export class CsvService implements ICsvService {
                         })
                         .where('id = :id', { id: orderId })
                         .execute();
+                    this.logger.log(`Updated order with ID: ${orderId}`);
                 }
 
                 // 4. Update Order Details if exists else insert 
@@ -124,6 +134,7 @@ export class CsvService implements ICsvService {
                             product_id: productId
                         })
                         .execute();
+                    this.logger.log(`Updated order detail for Order ID: ${orderId}, Product ID: ${productId}`)
                 } else {
                     await queryRunner.manager
                         .createQueryBuilder()
@@ -139,11 +150,14 @@ export class CsvService implements ICsvService {
                 }
             }
             await queryRunner.commitTransaction();
+            this.logger.log('Batch update committed successfully.');
         } catch (error) {
             await queryRunner.rollbackTransaction();
+            this.logger.error('Batch update failed.', error.message);
             throw new BadRequestException(`Update failed: ${error.message}`);
         } finally {
             await queryRunner.release();
+            this.logger.log('Query runner released.');
         }
     }
 

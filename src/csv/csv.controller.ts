@@ -2,11 +2,13 @@ import { BadRequestException, Controller, Inject, Post, UploadedFile, UseInterce
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ICsvService } from './csv';
 import { Services } from 'src/utils/constants';
+import { AppLogger } from 'src/common/logger';
 @Controller('csv')
 export class CsvController {
     constructor(
         @Inject(Services.CSV)
         private csvServices: ICsvService,
+        private readonly logger: AppLogger,
     ) { }
 
     @Post('upload')

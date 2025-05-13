@@ -11,6 +11,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import * as multer from 'multer';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CsvCronService } from './csv.cron.service';
+import { CommonModule } from 'src/common/common.module';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { CsvCronService } from './csv.cron.service';
     MulterModule.register({
       storage: multer.memoryStorage(),
     }),
-    ScheduleModule.forRoot()
+    ScheduleModule.forRoot(),
+    CommonModule
   ],
   controllers: [CsvController],
   providers: [{ provide: Services.CSV, useClass: CsvService }, CsvCronService]
