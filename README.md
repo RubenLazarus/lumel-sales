@@ -103,7 +103,7 @@ CREATE TABLE order_details (
 ## API Endpoints
 
 * **POST** `/csv/upload`: Upload a CSV file to ingest data.
-* **GET** `/revenue/calculate`: Calculate revenue based on query params (`type`, `startDate`, `endDate`).
+* **GET** `/analysis/revenue`: Calculate revenue based on query params (`type`, `startDate`, `endDate`).
 
 ## Running Tests
 
